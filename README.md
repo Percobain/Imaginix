@@ -1,6 +1,14 @@
 # Imaginix
 
-Imaginix is a modern web application built with Next.js, React, and various other technologies. This project aims to provide a seamless user experience with a robust and scalable architecture.
+A real-time AI-powered image generation and manipulation tool.
+
+## Features
+
+• Text-to-Image Generation using fal.ai  
+• Real-time image modifications through Excalidraw interface  
+• Instant visual feedback and rendering  
+• Interactive drawing capabilities  
+• Seamless integration of AI with user input
 
 ## Tech Stack
 
