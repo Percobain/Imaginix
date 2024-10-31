@@ -8,10 +8,9 @@ import {
 import { type Excalidraw } from "@excalidraw/excalidraw";
 
 import {
-  serializeAsJSON, // Serialize our canvas to JSON. To only update when canvas it's change
+  serializeAsJSON,
 } from "@excalidraw/excalidraw";
 
-// Object Literal Type
 export type CanvasChangeEvent = {
   elements: readonly ExcalidrawElement[];
   appState: AppState;
@@ -22,14 +21,12 @@ export type DrawingCanvasProps = {
   onCanvasChange: (event: CanvasChangeEvent) => void;
 };
 
-// Ensure they're only called in a browser environment.
 const isBrowser = typeof window !== "undefined";
 
 export async function blobToBase64(blob: Blob): Promise<string> {
   return await new Promise((resolve) => {
     let reader = new FileReader();
     reader.onload = resolve;
-
     reader.readAsDataURL(blob);
   }).then((e: any) => e.target.result);
 }
@@ -37,12 +34,11 @@ export async function blobToBase64(blob: Blob): Promise<string> {
 const DrawingCanvas = ({ onCanvasChange }: DrawingCanvasProps) => {
   const [excalidrawAPI, setExcalidrawAPI] =
     useState<ExcalidrawImperativeAPI | null>(null);
-
   const [ExcalidrawComponent, setExcalidrawComponent] = useState<
     typeof Excalidraw | null
   >(null);
-
   const [syncData, setSyncData] = useState<any>(null);
+  const [dimensions, setDimensions] = useState({ width: 450, height: 450 });
 
   useEffect(() => {
     if (isBrowser) {
@@ -50,16 +46,27 @@ const DrawingCanvas = ({ onCanvasChange }: DrawingCanvasProps) => {
         setExcalidrawComponent(comp.Excalidraw)
       );
 
-      const onResize = () => {
+      const updateDimensions = () => {
+        const container = document.querySelector('.canvas-container');
+        if (container) {
+          const width = container.clientWidth;
+          // Maintain aspect ratio
+          const height = Math.min(width, window.innerHeight - 100);
+          setDimensions({ width, height });
+        }
         if (excalidrawAPI) {
           excalidrawAPI.refresh();
         }
       };
 
-      window.addEventListener("resize", onResize);
+      // Initial dimension setup
+      updateDimensions();
+
+      // Update dimensions on resize
+      window.addEventListener("resize", updateDimensions);
 
       return () => {
-        window.removeEventListener("resize", onResize);
+        window.removeEventListener("resize", updateDimensions);
       };
     }
   }, [excalidrawAPI]);
@@ -70,7 +77,6 @@ const DrawingCanvas = ({ onCanvasChange }: DrawingCanvasProps) => {
   ) {
     if (!excalidrawAPI || !elements || !elements.length) return;
 
-    // Export our canvas to an image
     const { exportToBlob } = await import("@excalidraw/excalidraw");
 
     const newSyncData = serializeAsJSON(
@@ -82,9 +88,6 @@ const DrawingCanvas = ({ onCanvasChange }: DrawingCanvasProps) => {
 
     if (newSyncData !== syncData) {
       setSyncData(newSyncData);
-      // The Blob object represents a blob, which is a file-like object of immutable, raw data; they can be read as text or binary data, or converted into a ReadableStream so its methods can be used for processing the data.
-      // *******
-      // Blobs can represent data that isn't necessarily in a JavaScript-native format. The File interface is based on Blob, inheriting blob functionality and expanding it to support files on the user's system.
 
       const blob = await exportToBlob({
         elements,
@@ -93,9 +96,7 @@ const DrawingCanvas = ({ onCanvasChange }: DrawingCanvasProps) => {
         quality: 1,
         mimeType: "image/webp",
         files: excalidrawAPI.getFiles(),
-        getDimensions: () => {
-          return { width: 450, height: 450 };
-        },
+        getDimensions: () => dimensions,
       });
 
       const imageData = await blobToBase64(blob);
@@ -109,14 +110,15 @@ const DrawingCanvas = ({ onCanvasChange }: DrawingCanvasProps) => {
   }
 
   return (
-    <div className="w-[636px] h-[570px]">
+    <div className="canvas-container w-full h-full min-h-[300px] relative">
       {ExcalidrawComponent && (
-        <ExcalidrawComponent
-          autoFocus={true}
-          excalidrawAPI={(api) => setExcalidrawAPI(api)}
-          // This callback is triggered whenever the component updates due to any change. This callback will receive the excalidraw elements and the current app state.
-          onChange={handleCanvasChanges}
-        />
+        <div style={{ width: dimensions.width, height: dimensions.height }}>
+          <ExcalidrawComponent
+            autoFocus={true}
+            excalidrawAPI={(api) => setExcalidrawAPI(api)}
+            onChange={handleCanvasChanges}
+          />
+        </div>
       )}
     </div>
   );
